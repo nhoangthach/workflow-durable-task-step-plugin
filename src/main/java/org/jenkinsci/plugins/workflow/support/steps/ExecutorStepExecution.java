@@ -124,7 +124,72 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
                 }
             }
         }, 15, TimeUnit.SECONDS);
+
+        // show slave status message when waiting to schedule task
+        Timer.get().schedule(new Runnable() {
+            @Override public void run() {
+                Queue.Item item = Queue.getInstance().getItem(task);
+                while (item != null){
+                    PrintStream logger;
+                    try {
+                        logger = getContext().get(TaskListener.class).getLogger();
+                    } catch (Exception x) { // IOException, InterruptedException
+                        LOGGER.log(FINE, "could not print message to build about " + item + "; perhaps it is already completed", x);
+                        return;
+                    }
+                    String why = item.getWhy();
+                    if (why != null) {
+                        getSlaveStatus(logger);
+                        logger.println("**** NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN ****");
+                        try {
+                            Thread.sleep(60000 * 3);
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                        item = Queue.getInstance().getItem(task);
+                    }
+                }
+            }
+        }, 15, TimeUnit.SECONDS);
         return false;
+    }
+
+    void getSlaveStatus(PrintStream logger) {
+        String[] slaves = new String[0];
+        for (Queue.Item item : Queue.getInstance().getItems()) {
+            if (item.task instanceof PlaceholderTask && ((PlaceholderTask) item.task).context.equals(getContext())) {
+                String label = item.task.getAssignedLabel().toString();
+                if (!label.contains("!")){
+                    slaves = label.split("\\|\\|");
+                }
+            }
+        }
+        Jenkins j = Jenkins.getInstance();
+        if (j != null) {
+            logger.println("\n=========The current candidate slave list status for this pipeline========");
+            if (slaves.length > 0){
+                for (String slave : slaves){
+                    for (Node node : j.getNodes()){
+                        String nodeName = node.getLabelString();
+                        if (nodeName.equals(slave)){
+                            Computer c = node.toComputer();
+                            if (c != null){
+                                if (!c.isOffline()) {
+                                    //Make sure that the slave busy executor number is 0.
+                                    if (c.countBusy() == 0) {
+                                        logger.println( nodeName + " can take jobs");
+                                    } else {
+                                        logger.println( nodeName + " is busy !!!");
+                                    }
+                                } else {
+                                    logger.println( nodeName + " is offline !!!");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Override

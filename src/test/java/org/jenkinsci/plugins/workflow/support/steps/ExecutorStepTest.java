@@ -529,6 +529,14 @@ public class ExecutorStepTest {
         });
     }
 
+    void waitStatusMessage(WorkflowRun b) throws InterruptedException, IOException {
+        story.j.waitForMessage("NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN", b);
+        story.j.waitForMessage("=========The other running task on the queue ========", b);
+        Thread.sleep(6000 * 3);
+        story.j.waitForMessage("NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN", b);
+        story.j.waitForMessage("=========The other running task on the queue ========", b);
+    }
+
     @Issue("JENKINS-26513")
     @Test public void executorStepRestart() {
         story.addStep(new Statement() {
@@ -537,6 +545,7 @@ public class ExecutorStepTest {
                 p.setDefinition(new CpsFlowDefinition("node('special') {echo 'OK ran'}"));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 story.j.waitForMessage("Still waiting to schedule task", b);
+                waitStatusMessage(b);
             }
         });
         story.addStep(new Statement() {
@@ -545,6 +554,21 @@ public class ExecutorStepTest {
                 WorkflowJob p = (WorkflowJob) story.j.jenkins.getItem("demo");
                 WorkflowRun b = p.getLastBuild();
                 story.j.assertLogContains("OK ran", story.j.assertBuildStatusSuccess(story.j.waitForCompletion(b)));
+            }
+        });
+    }
+
+    @Issue("JENKINS-55573")
+    @Test public void getMessageStatusWhenWaiting() {
+        story.addStep(new Statement() {
+            @Override public void evaluate() throws Throwable {
+                WorkflowJob p = story.j.jenkins.createProject(WorkflowJob.class, "test");
+                p.setDefinition(new CpsFlowDefinition("node('slave1||slave2') {echo 'OK ran'}"));
+                WorkflowRun b = p.scheduleBuild2(0).waitForStart();
+                story.j.waitForMessage("Still waiting to schedule task", b);
+                story.j.waitForMessage("Task: part of test #1", b);
+                waitStatusMessage(b);
+                story.j.waitForMessage("Task: part of test #1", b);
             }
         });
     }
@@ -639,6 +663,7 @@ public class ExecutorStepTest {
                 p.setDefinition(new CpsFlowDefinition("node('nonexistent') {}", true));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 story.j.waitForMessage("Still waiting to schedule task", b);
+                waitStatusMessage(b);
                 ACL.impersonate(User.get("admin").impersonate(), new Runnable() {
                     @Override public void run() {
                         Queue.Item[] items = Queue.getInstance().getItems();

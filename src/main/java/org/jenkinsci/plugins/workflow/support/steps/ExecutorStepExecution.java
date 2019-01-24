@@ -156,33 +156,38 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
 
     void getSlaveStatus(PrintStream logger) {
         String[] slaves = new String[0];
-        for (Queue.Item item : Queue.getInstance().getItems()) {
-            if (item.task instanceof PlaceholderTask && ((PlaceholderTask) item.task).context.equals(getContext())) {
-                String label = item.task.getAssignedLabel().toString();
-                if (!label.contains("!")){
-                    slaves = label.split("\\|\\|");
+        Queue.Item[] items = Queue.getInstance().getItems();
+        if (items.length > 0){
+            logger.println("\n=========The other running task on the queue ========");
+            for (Queue.Item item : items) {
+                if (item.task instanceof PlaceholderTask && ((PlaceholderTask) item.task).context.equals(getContext())) {
+                    String label = item.task.getAssignedLabel().toString();
+                    if (!label.contains("!")){
+                        slaves = label.split("\\|\\|");
+                    }
                 }
+                logger.println( "Task: " + item.task.getFullDisplayName());
             }
-        }
-        Jenkins j = Jenkins.getInstance();
-        if (j != null) {
-            logger.println("\n=========The current candidate slave list status for this pipeline========");
-            if (slaves.length > 0){
-                for (String slave : slaves){
-                    for (Node node : j.getNodes()){
-                        String nodeName = node.getLabelString();
-                        if (nodeName.equals(slave)){
-                            Computer c = node.toComputer();
-                            if (c != null){
-                                if (!c.isOffline()) {
-                                    //Make sure that the slave busy executor number is 0.
-                                    if (c.countBusy() == 0) {
-                                        logger.println( nodeName + " can take jobs");
+            Jenkins j = Jenkins.getInstance();
+            if (j != null) {
+                if (slaves.length > 0){
+                    logger.println("\n=========The current candidate slave list status for this pipeline ========");
+                    for (String slave : slaves){
+                        for (Node node : j.getNodes()){
+                            String nodeName = node.getLabelString();
+                            if (nodeName.equals(slave)){
+                                Computer c = node.toComputer();
+                                if (c != null){
+                                    if (!c.isOffline()) {
+                                        //Make sure that the slave busy executor number is 0.
+                                        if (c.countBusy() == 0) {
+                                            logger.println( nodeName + " can take jobs");
+                                        } else {
+                                            logger.println( nodeName + " is busy !!!");
+                                        }
                                     } else {
-                                        logger.println( nodeName + " is busy !!!");
+                                        logger.println( nodeName + " is offline !!!");
                                     }
-                                } else {
-                                    logger.println( nodeName + " is offline !!!");
                                 }
                             }
                         }

@@ -566,9 +566,9 @@ public class ExecutorStepTest {
                 p.setDefinition(new CpsFlowDefinition("node('slave1||slave2') {echo 'OK ran'}"));
                 WorkflowRun b = p.scheduleBuild2(0).waitForStart();
                 story.j.waitForMessage("Still waiting to schedule task", b);
-                story.j.waitForMessage("Task: part of test #1", b);
+                story.j.waitForMessage("Id: " + story.j.jenkins.getQueue().getItems()[0].getId() + " - test #1", b);
                 waitStatusMessage(b);
-                story.j.waitForMessage("Task: part of test #1", b);
+                story.j.waitForMessage("Id: " + story.j.jenkins.getQueue().getItems()[0].getId() + " - test #1", b);
             }
         });
     }

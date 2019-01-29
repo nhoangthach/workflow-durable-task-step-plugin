@@ -139,7 +139,7 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
                     }
                     String why = item.getWhy();
                     if (why != null) {
-                        getSlaveStatus(logger);
+                        getSlaveAndQueueStatus(logger);
                         logger.println("**** NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN ****");
                         try {
                             Thread.sleep(60000 * 3);
@@ -154,19 +154,21 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
         return false;
     }
 
-    void getSlaveStatus(PrintStream logger) {
+    void getSlaveAndQueueStatus(PrintStream logger) {
         String[] slaves = new String[0];
         Queue.Item[] items = Queue.getInstance().getItems();
         if (items.length > 0){
             logger.println("\n=========The other running task on the queue ========");
             for (Queue.Item item : items) {
-                if (item.task instanceof PlaceholderTask && ((PlaceholderTask) item.task).context.equals(getContext())) {
-                    String label = item.task.getAssignedLabel().toString();
-                    if (!label.contains("!")){
-                        slaves = label.split("\\|\\|");
+                if (item.task instanceof PlaceholderTask) {
+                    if (((PlaceholderTask) item.task).context.equals(getContext())) {
+                        String label = item.task.getAssignedLabel().toString();
+                        if (!label.contains("!")){
+                            slaves = label.split("\\|\\|");
+                        }
                     }
+                    logger.println( "Id: " + item.getId() + " - " + item.task.getFullDisplayName().replace("part of ", ""));
                 }
-                logger.println( "Task: " + item.task.getFullDisplayName());
             }
             Jenkins j = Jenkins.getInstance();
             if (j != null) {

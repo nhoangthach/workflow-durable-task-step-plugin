@@ -63,11 +63,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.Handler;
 import java.util.logging.Level;
@@ -531,10 +527,10 @@ public class ExecutorStepTest {
 
     void waitStatusMessage(WorkflowRun b) throws InterruptedException, IOException {
         story.j.waitForMessage("NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN", b);
-        story.j.waitForMessage("=========The other running task on the queue ========", b);
+        story.j.waitForMessage("=========The other running task on the queue in order ========", b);
         Thread.sleep(6000 * 3);
         story.j.waitForMessage("NO NODE IS FREE TO TAKE THE JOB, RETRYING INTERNALLY, WILL PUBLISH NEXT STATUS IN 3 MIN", b);
-        story.j.waitForMessage("=========The other running task on the queue ========", b);
+        story.j.waitForMessage("=========The other running task on the queue in order ========", b);
     }
 
     @Issue("JENKINS-26513")

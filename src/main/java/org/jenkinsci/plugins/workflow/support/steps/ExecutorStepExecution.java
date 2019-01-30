@@ -34,14 +34,7 @@ import hudson.slaves.WorkspaceList;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 import static java.util.logging.Level.*;
@@ -156,9 +149,9 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
 
     void getSlaveAndQueueStatus(PrintStream logger) {
         String[] slaves = new String[0];
+        Map<Long, String> tasks = new TreeMap();
         Queue.Item[] items = Queue.getInstance().getItems();
         if (items.length > 0){
-            logger.println("\n=========The other running task on the queue ========");
             for (Queue.Item item : items) {
                 if (item.task instanceof PlaceholderTask) {
                     if (((PlaceholderTask) item.task).context.equals(getContext())) {
@@ -167,8 +160,13 @@ public class ExecutorStepExecution extends AbstractStepExecutionImpl {
                             slaves = label.split("\\|\\|");
                         }
                     }
-                    logger.println( "Id: " + item.getId() + " - " + item.task.getFullDisplayName().replace("part of ", ""));
+                    tasks.put(item.getId(), item.task.getFullDisplayName().replace("part of ", ""));
                 }
+            }
+
+            logger.println("\n=========The other running task on the queue in order ========");
+            for (Map.Entry<Long, String> entry : tasks.entrySet()) {
+                logger.println( "Id: " + entry.getKey() + " - " + entry.getValue());
             }
             Jenkins j = Jenkins.getInstance();
             if (j != null) {
